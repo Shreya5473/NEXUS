@@ -14,12 +14,12 @@ TOOLS = [
             "name": "calculate_growth_rate",
             "description": "Calculate percentage growth between two financial values (e.g. revenue, expenses) across two periods.",
             "parameters": {
-                "type": "object",
-                "properties": {
-                    "previous_value": {"type": "number", "description": "The value in the earlier period"},
-                    "current_value": {"type": "number", "description": "The value in the later period"},
-                },
-                "required": ["previous_value", "current_value"],
+            "type": "object",
+            "properties": {
+            "previous_period": {"type": "string", "description": "The earlier period in format YYYY-QN, e.g. '2026-Q1'"},
+            "current_period": {"type": "string", "description": "The later period in format YYYY-QN, e.g. '2026-Q2'"},
+            },
+            "required": ["previous_period", "current_period"],
             },
         },
     }
@@ -36,10 +36,12 @@ def run_finance_agent(user_question: str, context: str) -> str:
         {
             "role": "system",
             "content": (
-                "You are a Finance Agent for a business intelligence system. "
-                "You must NEVER calculate numbers yourself — always use the "
-                "calculate_growth_rate tool for any growth/percentage calculation. "
-                "Answer clearly and briefly."
+            "You are a Finance Agent for a business intelligence system with direct access "
+            "to a financial database. You must NEVER ask the user for numbers — always call "
+            "the calculate_growth_rate tool to look up real data yourself. "
+            "Periods are quarters in the format YYYY-QN (e.g. '2026-Q1', '2026-Q2', '2026-Q3'). "
+            "Available periods in the database include 2026-Q1, 2026-Q2, and 2026-Q3. "
+            "Answer clearly and briefly."
             ),
         },
         {"role": "user", "content": f"Context: {context}\n\nQuestion: {user_question}"},

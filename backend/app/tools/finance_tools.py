@@ -1,16 +1,28 @@
-"""
-Finance tools — plain, deterministic functions.
-The Finance Agent will call these to get real numbers, never calculate them itself.
-"""
+from app.db.database import SessionLocal
+from app.models.financial_record import FinancialRecord
 
-def calculate_growth_rate(previous_value: float, current_value: float) -> float:
+
+def get_financial_record(period: str) -> FinancialRecord:
+    db = SessionLocal()
+    record = db.query(FinancialRecord).filter(FinancialRecord.period == period).first()
+    db.close()
+
+    if not record:
+        raise ValueError(f"No financial record found for period '{period}'")
+
+    return record
+
+
+def calculate_growth_rate(previous_period: str, current_period: str) -> float:
     """
-    Calculates percentage growth between two periods.
-
-    Example: previous=100, current=120 -> 20.0 (meaning +20%)
+    previous_period / current_period: e.g. "2026-Q1", "2026-Q2"
+    Looks up real revenue for both periods and calculates percentage growth.
     """
-    if previous_value == 0:
-        raise ValueError("previous_value cannot be zero — growth rate undefined")
+    previous = get_financial_record(previous_period)
+    current = get_financial_record(current_period)
 
-    growth = ((current_value - previous_value) / previous_value) * 100
+    if previous.revenue == 0:
+        raise ValueError("previous period revenue cannot be zero — growth rate undefined")
+
+    growth = ((current.revenue - previous.revenue) / previous.revenue) * 100
     return round(growth, 2)
