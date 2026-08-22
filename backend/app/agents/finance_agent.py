@@ -32,10 +32,6 @@ AVAILABLE_TOOLS = {
 
 
 def run_finance_agent(user_question: str, context: str) -> str:
-    """
-    context: plain text with the actual numbers available, e.g.
-    'Last quarter revenue: $1,200,000. This quarter revenue: $1,344,000.'
-    """
     messages = [
         {
             "role": "system",
@@ -49,41 +45,32 @@ def run_finance_agent(user_question: str, context: str) -> str:
         {"role": "user", "content": f"Context: {context}\n\nQuestion: {user_question}"},
     ]
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=messages,
-        tools=TOOLS,
-    )
-
-    reply = response.choices[0].message
-
-    # If the LLM didn't need a tool, just return its answer
-    if not reply.tool_calls:
-        return reply.content
-
-    # The LLM wants to call a tool — actually run it
-    messages.append(reply)
-
-    for tool_call in reply.tool_calls:
-        function_name = tool_call.function.name
-        function_args = json.loads(tool_call.function.arguments)
-
-        function_to_call = AVAILABLE_TOOLS[function_name]
-        result = function_to_call(**function_args)
-
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "name": function_name,
-                "content": str(result),
-            }
+    while True:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=messages,
+            tools=TOOLS,
         )
 
-    # Send the tool's real result back to the LLM so it can explain it in words
-    final_response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=messages,
-    )
+        reply = response.choices[0].message
 
-    return final_response.choices[0].message.content
+        if not reply.tool_calls:
+            return reply.content
+
+        messages.append(reply)
+
+        for tool_call in reply.tool_calls:
+            function_name = tool_call.function.name
+            function_args = json.loads(tool_call.function.arguments)
+
+            function_to_call = AVAILABLE_TOOLS[function_name]
+            result = function_to_call(**function_args)
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "name": function_name,
+                    "content": str(result),
+                }
+            )
